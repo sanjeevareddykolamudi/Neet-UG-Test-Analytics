@@ -10,6 +10,8 @@ const mockDashboardData = {
     currentRank: 4235,
     weakTopicsCount: 8,
     pendingRevisionTasksCount: 4,
+    questionBankSize: 342,
+    recurringMistakesCount: 5,
   },
   marksTrend: [
     { testName: "Mock 1", score: 510, averageScore: 505, date: "03/01" },
@@ -37,6 +39,22 @@ const mockDashboardData = {
     { topic: "Genetics & Evolution", subject: "Botany", accuracy: 91, weightage: "High" },
     { topic: "Human Physiology", subject: "Zoology", accuracy: 88, weightage: "High" },
   ],
+  chapterAccuracy: [
+    { subject: "Physics", chapter: "Mechanics", accuracy: 65 },
+    { subject: "Physics", chapter: "Thermodynamics", accuracy: 55 },
+    { subject: "Physics", chapter: "Electrostatics", accuracy: 60 },
+    { subject: "Chemistry", chapter: "Equilibrium", accuracy: 52 },
+    { subject: "Chemistry", chapter: "Hydrocarbons", accuracy: 62 },
+    { subject: "Botany", chapter: "Plant Physiology", accuracy: 74 },
+    { subject: "Botany", chapter: "Genetics & Inheritance", accuracy: 91 },
+    { subject: "Zoology", chapter: "Human Physiology", accuracy: 88 },
+  ],
+  topicMasteryTrend: [
+    { date: "05/01", "Rotational Dynamics": 30, "Ionic Equilibrium": 40, "Thermodynamics": 45 },
+    { date: "05/15", "Rotational Dynamics": 35, "Ionic Equilibrium": 45, "Thermodynamics": 48 },
+    { date: "06/01", "Rotational Dynamics": 42, "Ionic Equilibrium": 50, "Thermodynamics": 50 },
+    { date: "06/08", "Rotational Dynamics": 45, "Ionic Equilibrium": 52, "Thermodynamics": 55 },
+  ],
   monthlyPerformance: [
     { month: "Mar", physics: 54, chemistry: 68, biology: 76 },
     { month: "Apr", physics: 58, chemistry: 72, biology: 80 },
@@ -61,6 +79,18 @@ const mockDashboardData = {
     { id: "rev-3", topic: "Thermodynamics Carnot Cycle graphs", subject: "Physics", dueDate: "2026-06-12", priority: "Medium", completed: false, notes: "Draw P-V diagrams for isothermal and adiabatic expansions." },
     { id: "rev-4", topic: "Plant Physiology photosynthesis reactions", subject: "Botany", dueDate: "2026-06-13", priority: "Medium", completed: true, notes: "Re-read light reaction steps and Z-scheme cycle." },
     { id: "rev-5", topic: "Human Digestion endocrine system chart", subject: "Zoology", dueDate: "2026-06-14", priority: "Low", completed: false, notes: "Memorize hormonal triggers for gastric and pancreatic secretions." },
+  ],
+  recentUploads: [
+    { id: "doc-1", name: "NEET_2025_Original_Syllabus.pdf", size: "4.8 MB", uploadedAt: "2 hours ago", status: "completed" as const },
+    { id: "doc-2", name: "Allen_All_India_Test_08_Scanned.pdf", size: "12.4 MB", uploadedAt: "3 hours ago", status: "completed" as const },
+    { id: "doc-3", name: "Thermodynamics_Weekly_Test.png", size: "2.1 MB", uploadedAt: "1 day ago", status: "parsing" as const },
+    { id: "doc-4", name: "Genetics_NCERT_Revision_Questions.pdf", size: "6.2 MB", uploadedAt: "2 days ago", status: "pending_review" as const },
+  ],
+  mostRepeatedMistakes: [
+    { topic: "Rotational Dynamics & Torque", subject: "Physics", count: 4, lastSeen: "NEET Mock 8" },
+    { topic: "Chemical & Ionic Equilibrium", subject: "Chemistry", count: 3, lastSeen: "NEET Mock 8" },
+    { topic: "Thermodynamics Carnot Cycles", subject: "Physics", count: 3, lastSeen: "NEET Mock 7" },
+    { topic: "Electrostatics & Capacitors", subject: "Physics", count: 2, lastSeen: "NEET Mock 6" },
   ]
 };
 

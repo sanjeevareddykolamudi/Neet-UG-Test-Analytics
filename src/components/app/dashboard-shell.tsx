@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -52,6 +52,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Analysis Complete", body: "NEET Mock 8 results are now available.", read: false, time: "2h ago" },
     { id: 2, title: "Revision Reminder", body: "Thermodynamics Carnot Cycle revision is overdue.", read: false, time: "5h ago" },
@@ -151,9 +163,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </Sheet>
 
             {/* Quick Search */}
-            <div className="relative hidden max-w-xs sm:block">
+            <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search topics, mistakes..."
                 className="h-9 w-60 rounded-full border border-border/40 bg-muted/40 pl-9 pr-8 text-xs outline-none transition-all focus:w-72 focus:border-primary focus:bg-background/80 focus:ring-1 focus:ring-primary/20"
@@ -234,10 +247,43 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 pb-24 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden h-16 border-t border-border/40 bg-card/85 backdrop-blur-xl px-2 shadow-lg flex items-center justify-around">
+        {[
+          { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { href: "/tests", label: "Tests", icon: ClipboardList },
+          { href: "/mistake-journal", label: "Mistakes", icon: BookOpen, badge: "8" },
+          { href: "/revision-planner", label: "Revision", icon: Calendar, badge: "5" },
+          { href: "/analytics", label: "Analytics", icon: LineChart }
+        ].map((item) => {
+          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <item.icon className="h-5 w-5 mb-0.5" />
+              <span className="text-[10px] font-semibold tracking-tight">{item.label}</span>
+              {item.badge && !isActive && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[8px] font-extrabold text-destructive-foreground">
+                  {item.badge}
+                </span>
+              )}
+              {isActive && (
+                <span className="absolute bottom-0 h-1 w-5 rounded-full bg-primary animate-pulse" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

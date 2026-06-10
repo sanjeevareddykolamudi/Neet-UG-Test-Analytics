@@ -5,6 +5,8 @@ export interface SummaryStats {
   currentRank: number;
   weakTopicsCount: number;
   pendingRevisionTasksCount: number;
+  questionBankSize: number;
+  recurringMistakesCount: number;
 }
 
 export interface MarksTrendPoint {
@@ -26,6 +28,34 @@ export interface TopicAccuracy {
   subject: string;
   accuracy: number; // Percentage
   weightage: "High" | "Medium" | "Low";
+}
+
+export interface ChapterAccuracyPoint {
+  subject: string;
+  chapter: string;
+  accuracy: number;
+}
+
+export interface TopicMasteryTrendPoint {
+  date: string;
+  "Rotational Dynamics": number;
+  "Ionic Equilibrium": number;
+  "Thermodynamics": number;
+}
+
+export interface MostRepeatedMistake {
+  topic: string;
+  subject: string;
+  count: number;
+  lastSeen: string;
+}
+
+export interface RecentUpload {
+  id: string;
+  name: string;
+  size: string;
+  uploadedAt: string;
+  status: "completed" | "parsing" | "failed" | "pending_review";
 }
 
 export interface MonthlyPerformance {
@@ -93,4 +123,8 @@ export interface DashboardData {
   weakTopicsDistribution: WeakTopicDistribution[];
   recentActivities: RecentActivity[];
   revisionTasks: RevisionTask[];
+  chapterAccuracy: ChapterAccuracyPoint[];
+  topicMasteryTrend: TopicMasteryTrendPoint[];
+  recentUploads: RecentUpload[];
+  mostRepeatedMistakes: MostRepeatedMistake[];
 }
