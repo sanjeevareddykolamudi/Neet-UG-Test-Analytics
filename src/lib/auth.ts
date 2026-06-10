@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { env } from "@/lib/env";
 import { userService } from "@/services/user.service";
+import { connectToDatabase } from "@/lib/mongodb";
 
 // Enable credentials provider only in development environments lacking Google secrets
 const isProduction = env.APP_ENV === "production" || (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
@@ -86,6 +87,9 @@ export const authOptions: NextAuthOptions = {
       
       if (account?.provider === "google" && profile?.email) {
         try {
+          // Ensure database connection is established before querying models
+          await connectToDatabase();
+          
           // Sync Google User details inside database
           const dbUser = await userService.syncGoogleUser({
             email: profile.email,
