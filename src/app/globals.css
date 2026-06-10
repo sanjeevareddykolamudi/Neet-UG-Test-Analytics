@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 42 45% 97%;
+  --foreground: 190 34% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 190 34% 12%;
+  --primary: 174 76% 24%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 38 92% 58%;
+  --secondary-foreground: 190 34% 12%;
+  --muted: 42 28% 91%;
+  --muted-foreground: 190 12% 40%;
+  --accent: 204 74% 44%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 42 22% 84%;
+  --input: 42 22% 84%;
+  --ring: 174 76% 24%;
+  --radius: 0.75rem;
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+}
+
+.dark {
+  --background: 200 40% 6%;
+  --foreground: 200 15% 90%;
+  --card: 200 30% 9%;
+  --card-foreground: 200 15% 90%;
+  --primary: 174 76% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 38 92% 58%;
+  --secondary-foreground: 200 40% 6%;
+  --muted: 200 20% 14%;
+  --muted-foreground: 200 10% 62%;
+  --accent: 204 74% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 200 20% 16%;
+  --input: 200 20% 16%;
+  --ring: 174 76% 35%;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  @apply bg-background text-foreground antialiased transition-colors duration-300;
+  background-attachment: fixed;
+}
+
+:root:not(.dark) body {
+  background:
+    linear-gradient(135deg, hsl(42 45% 97%) 0%, hsl(184 39% 94%) 48%, hsl(39 90% 94%) 100%);
+}
+
+.dark body {
+  background:
+    linear-gradient(135deg, hsl(200 40% 6%) 0%, hsl(200 35% 8%) 50%, hsl(174 80% 4%) 100%);
+}
+
+::selection {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+/* Custom premium scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--border));
+}
+

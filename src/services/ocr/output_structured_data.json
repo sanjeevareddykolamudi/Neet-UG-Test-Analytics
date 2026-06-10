@@ -1,0 +1,86 @@
+[
+  {
+    "questionNo": 1,
+    "questionText": "Whats the efficiency of a Camot engine working between 127 C and 27 C7 (pe B)50 C)75 D)33.3",
+    "options": {
+      "A": "",
+      "B": "",
+      "C": "",
+      "D": ""
+    },
+    "selectedAnswer": "Unattempted",
+    "confidence": {
+      "ocr": 86.32569885253906,
+      "markDetection": 100,
+      "overall": 93
+    },
+    "roiCoordinates": {
+      "A": {
+        "x": 50,
+        "y": 800,
+        "width": 45,
+        "height": 35
+      },
+      "B": {
+        "x": 170,
+        "y": 800,
+        "width": 45,
+        "height": 35
+      },
+      "C": {
+        "x": 290,
+        "y": 840,
+        "width": 45,
+        "height": 35
+      },
+      "D": {
+        "x": 410,
+        "y": 840,
+        "width": 45,
+        "height": 35
+      }
+    }
+  },
+  {
+    "questionNo": 2,
+    "questionText": "Which of the following Mendelian disorders is sex-linked recessive? /B) Haemophilia",
+    "options": {
+      "A": "Sickle-cell anemia",
+      "B": "",
+      "C": "Phenylketonuria",
+      "D": "Thalassemia"
+    },
+    "selectedAnswer": "D",
+    "confidence": {
+      "ocr": 92.4438705444336,
+      "markDetection": 37,
+      "overall": 65
+    },
+    "roiCoordinates": {
+      "A": {
+        "x": 120,
+        "y": 403,
+        "width": 60,
+        "height": 15
+      },
+      "B": {
+        "x": 240,
+        "y": 403,
+        "width": 60,
+        "height": 15
+      },
+      "C": {
+        "x": 121,
+        "y": 483,
+        "width": 60,
+        "height": 15
+      },
+      "D": {
+        "x": 121,
+        "y": 523,
+        "width": 60,
+        "height": 15
+      }
+    }
+  }
+]
