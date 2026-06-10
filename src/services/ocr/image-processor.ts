@@ -77,6 +77,18 @@ export class ImageProcessor {
       console.log("Using Jimp fallback filters...");
       let processedJimp = jimpImage.clone();
       
+      // Erase red ink (teacher corrections) by turning red-ish pixels to white
+      processedJimp.scan(0, 0, processedJimp.bitmap.width, processedJimp.bitmap.height, function(x, y, idx) {
+        const r = this.bitmap.data[idx];
+        const g = this.bitmap.data[idx + 1];
+        const b = this.bitmap.data[idx + 2];
+        if (r > 150 && g < 120 && b < 120) {
+          this.bitmap.data[idx] = 255;
+          this.bitmap.data[idx + 1] = 255;
+          this.bitmap.data[idx + 2] = 255;
+        }
+      });
+
       if (this.config.denoiseEnabled) {
         processedJimp = processedJimp.blur(1);
       }
@@ -95,6 +107,40 @@ export class ImageProcessor {
 
     // OpenCV.js execution
     let src = this.jimpToCvMat(cv, jimpImage);
+
+    // Erase red ink (teacher corrections) from color channels
+    try {
+      const channels = new cv.MatVector();
+      cv.split(src, channels);
+      const R = channels.get(0);
+      const G = channels.get(1);
+      const B = channels.get(2);
+
+      const maskR = new cv.Mat();
+      const maskG = new cv.Mat();
+      const maskB = new cv.Mat();
+      const tempMask = new cv.Mat();
+      const redMask = new cv.Mat();
+
+      // Threshold: high red, low green/blue
+      cv.threshold(R, maskR, 150, 255, cv.THRESH_BINARY);
+      cv.threshold(G, maskG, 120, 255, cv.THRESH_BINARY_INV);
+      cv.threshold(B, maskB, 120, 255, cv.THRESH_BINARY_INV);
+
+      cv.bitwise_and(maskR, maskG, tempMask);
+      cv.bitwise_and(tempMask, maskB, redMask);
+
+      // Convert matching pixels in source to white
+      src.setTo(new cv.Scalar(255, 255, 255, 255), redMask);
+
+      // Cleanup matrices
+      channels.delete(); R.delete(); G.delete(); B.delete();
+      maskR.delete(); maskG.delete(); maskB.delete();
+      tempMask.delete(); redMask.delete();
+    } catch (redErr) {
+      console.warn("OpenCV red-ink filter warning:", redErr);
+    }
+
     let gray = new cv.Mat();
     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
 
@@ -135,6 +181,14 @@ export class ImageProcessor {
 
     // Output processed buffer
     const finalJimp = this.cvMatToJimp(cv, thresholded, width, height);
+    if (this.config.debugMode) {
+      try {
+        await finalJimp.writeAsync("src/services/ocr/debug_enhanced.png");
+        console.log("Saved debug enhanced image to: src/services/ocr/debug_enhanced.png");
+      } catch (e) {
+        console.warn("Failed to write debug enhanced image:", e);
+      }
+    }
     const buffer = await finalJimp.getBufferAsync(Jimp.MIME_PNG);
 
     // Cleanup OpenCV allocations

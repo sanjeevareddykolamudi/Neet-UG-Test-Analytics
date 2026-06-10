@@ -16,6 +16,7 @@ interface MockTest {
   maxMarks: number;
   status: "uploaded" | "queued" | "ocr_pending" | "review_required" | "ready_for_key" | "analyzed" | "failed";
   subjectAccuracy: { Physics: number; Chemistry: number; Biology: number } | null;
+  statusMessage?: string;
 }
 
 const initialMockTests: MockTest[] = [
@@ -106,6 +107,58 @@ export default function TestsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  const fetchTests = async () => {
+    try {
+      const res = await fetch("/api/tests");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tests) {
+          interface DbTest {
+            _id: string;
+            id?: string;
+            testName: string;
+            testDate: string;
+            totalQuestions: number;
+            score: number | null;
+            maxMarks?: number;
+            processingStatus: string;
+            statusMessage?: string;
+            subjectAccuracy: { Physics: number; Chemistry: number; Biology: number } | null;
+          }
+
+          // Map MongoDB tests to UI MockTest shape
+          const dbTestsMapped: MockTest[] = (data.tests as DbTest[]).map((t) => ({
+            id: t._id || t.id || "",
+            title: t.testName,
+            date: new Date(t.testDate).toISOString().split("T")[0],
+            questionsCount: t.totalQuestions,
+            score: t.score,
+            maxMarks: t.maxMarks || 720,
+            status: t.processingStatus === "completed" ? "analyzed" : 
+                    t.processingStatus === "failed" ? "failed" : 
+                    t.processingStatus === "processing" ? "ocr_pending" : "queued",
+            subjectAccuracy: t.subjectAccuracy,
+            statusMessage: t.statusMessage || ""
+          }));
+
+          const stored = localStorage.getItem("neet_tests");
+          let localTests: MockTest[] = stored ? JSON.parse(stored) : initialMockTests;
+          
+          // Filter out mock tests that have database IDs
+          const dbIds = new Set(dbTestsMapped.map((t) => t.id));
+          localTests = localTests.filter((lt) => !dbIds.has(lt.id));
+
+          // Combine them
+          const combined = [...dbTestsMapped, ...localTests];
+          setTests(combined);
+          localStorage.setItem("neet_tests", JSON.stringify(combined));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch tests:", e);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("neet_tests");
@@ -119,13 +172,47 @@ export default function TestsPage() {
         localStorage.setItem("neet_tests", JSON.stringify(initialMockTests));
       }
     }
+
+    // Initial fetch from database
+    fetchTests();
+
+    // Start polling every 4 seconds to sync status changes
+    const interval = setInterval(fetchTests, 4000);
+    return () => clearInterval(interval);
   }, []);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this test paper and all its analyzed data?")) {
-      const updated = tests.filter((t) => t.id !== id);
-      setTests(updated);
-      localStorage.setItem("neet_tests", JSON.stringify(updated));
+      try {
+        const res = await fetch(`/api/tests?id=${id}`, {
+          method: "DELETE",
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed with status ${res.status}`);
+        }
+
+        const updated = tests.filter((t) => t.id !== id);
+        setTests(updated);
+        localStorage.setItem("neet_tests", JSON.stringify(updated));
+
+        // Sync neet_papers mock repository
+        const storedPapersStr = localStorage.getItem("neet_papers");
+        if (storedPapersStr) {
+          try {
+            const currentPapers = JSON.parse(storedPapersStr);
+            const updatedPapers = currentPapers.filter((p: { id: string }) => p.id !== id);
+            localStorage.setItem("neet_papers", JSON.stringify(updatedPapers));
+          } catch (e) {
+            console.error("Failed to sync neet_papers during deletion:", e);
+          }
+        }
+      } catch (err: unknown) {
+        console.error("Delete test error:", err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        alert(`Failed to delete the test paper: ${errMsg}`);
+      }
     }
   };
 
@@ -140,7 +227,11 @@ export default function TestsPage() {
       case "analyzed":
         return <Badge variant="success">Analyzed</Badge>;
       case "ocr_pending":
-        return <Badge variant="warning">OCR Parsing</Badge>;
+        return <Badge variant="warning" className="animate-pulse">OCR Parsing</Badge>;
+      case "queued":
+        return <Badge variant="outline" className="animate-pulse bg-amber-500/10 text-amber-500 border-amber-500/25">In Queue</Badge>;
+      case "failed":
+        return <Badge variant="destructive">Failed</Badge>;
       case "ready_for_key":
         return <Badge variant="info">Pending Key</Badge>;
       case "review_required":
@@ -256,6 +347,16 @@ export default function TestsPage() {
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className="text-sm font-bold text-foreground truncate">{test.title}</h3>
                   {getStatusBadge(test.status)}
+                  {test.statusMessage && (test.status === "ocr_pending" || test.status === "queued") && (
+                    <span className="text-[11px] text-amber-500 font-medium animate-pulse ml-1">
+                      — {test.statusMessage}
+                    </span>
+                  )}
+                  {test.statusMessage && test.status === "failed" && (
+                    <span className="text-[11px] text-destructive font-medium ml-1">
+                      — {test.statusMessage}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
@@ -294,6 +395,10 @@ export default function TestsPage() {
                   ) : test.status === "ready_for_key" ? (
                     <Button size="sm" variant="outline" className="h-8.5 font-semibold text-xs border-primary/25 hover:bg-primary/5 text-primary">
                       Add Answer Key
+                    </Button>
+                  ) : test.status === "failed" ? (
+                    <Button size="sm" variant="ghost" disabled className="h-8.5 text-xs text-destructive font-semibold">
+                      Failed
                     </Button>
                   ) : (
                     <Button size="sm" variant="ghost" disabled className="h-8.5 text-xs text-muted-foreground">

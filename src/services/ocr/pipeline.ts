@@ -41,11 +41,45 @@ export class OcrPipelineService {
     const startTime = Date.now();
     let questions: OcrQuestion[] = [];
     let processedPages = 0;
+    let accumulatedText = "";
 
     try {
+      // Try to extract digital text first if it's a PDF
+      if (mimeType === "application/pdf") {
+        const digitalResult = await this.extractDigitalTextFromPdf(documentBuffer);
+        if (digitalResult) {
+          questions = this.segmenter.segmentPage(
+            digitalResult.ocrResult,
+            digitalResult.pageWidth,
+            digitalResult.pageHeight
+          );
+          processedPages = 1;
+          accumulatedText = digitalResult.ocrResult.fullText;
+
+          const metadata = this.extractMetadata(accumulatedText);
+          
+          let totalConfidence = 0;
+          questions.forEach((q) => {
+            totalConfidence += q.confidence.overall;
+          });
+          const overallConfidence = questions.length > 0 ? Math.round(totalConfidence / questions.length) : 100;
+
+          return {
+            success: true,
+            questions,
+            processedPagesCount: processedPages,
+            overallConfidence,
+            processingTimeMs: Date.now() - startTime,
+            testName: metadata.testName,
+            subject: metadata.subject,
+            date: metadata.date
+          };
+        }
+      }
+
+      // Scanned PDF/Image pipeline fallback
       let imageBuffers: Buffer[] = [];
 
-      // Step 1: PDF to image conversion or pass-through for images
       if (mimeType === "application/pdf") {
         imageBuffers = await this.convertPdfToImages(documentBuffer);
       } else {
@@ -54,18 +88,12 @@ export class OcrPipelineService {
 
       processedPages = imageBuffers.length;
 
-      // Step 2-6: Loop through each page image and extract details
       for (const pageBuffer of imageBuffers) {
-        // 1. Decode Image via Jimp
         const jimpImage = await this.processor.decodeImage(pageBuffer);
-
-        // 2. Enhance image (binarization, deskewing, noise reduction)
         const { enhancedBuffer, rawMat, width, height } = await this.processor.enhanceImage(jimpImage);
 
-        // 3. OCR character recognition
         let ocrResult;
         try {
-          // Add a 5-second timeout for Tesseract to account for offline/sandbox environments
           ocrResult = await Promise.race([
             this.ocr.recognizeText(enhancedBuffer),
             new Promise<any>((_, reject) =>
@@ -77,10 +105,9 @@ export class OcrPipelineService {
           ocrResult = this.getSimulatedOcrResult();
         }
 
-        // 4. Question segmentation & option positioning
-        const pageQuestions = this.segmenter.segmentPage(ocrResult, width, height);
+        accumulatedText += "\n" + ocrResult.fullText;
 
-        // 5. Detect handwritten marked choices (ticks, circles, underlines)
+        const pageQuestions = this.segmenter.segmentPage(ocrResult, width, height);
         const gradedQuestions = await this.detector.detectMarkedAnswers(
           pageQuestions,
           enhancedBuffer,
@@ -89,13 +116,13 @@ export class OcrPipelineService {
 
         questions.push(...gradedQuestions);
 
-        // Clean up native mat reference if returned from OpenCV
         if (rawMat && typeof rawMat.delete === "function") {
           rawMat.delete();
         }
       }
 
-      // Calculate aggregate confidence score
+      const metadata = this.extractMetadata(accumulatedText);
+
       let totalConfidence = 0;
       questions.forEach((q) => {
         totalConfidence += q.confidence.overall;
@@ -107,7 +134,10 @@ export class OcrPipelineService {
         questions,
         processedPagesCount: processedPages,
         overallConfidence,
-        processingTimeMs: Date.now() - startTime
+        processingTimeMs: Date.now() - startTime,
+        testName: metadata.testName,
+        subject: metadata.subject,
+        date: metadata.date
       };
     } catch (error: any) {
       console.error("OCR Pipeline process failed:", error);
@@ -122,13 +152,155 @@ export class OcrPipelineService {
     }
   }
 
+  private async extractDigitalTextFromPdf(pdfBuffer: Buffer): Promise<{
+    success: boolean;
+    ocrResult: any;
+    pageWidth: number;
+    pageHeight: number;
+  } | null> {
+    try {
+      const pdfjsModuleName = "pdfjs-dist/legacy/build/pdf.mjs";
+      const pdfjs = require(pdfjsModuleName);
+
+      const pdfDoc = await pdfjs.getDocument({ data: new Uint8Array(pdfBuffer) }).promise;
+      if (pdfDoc.numPages === 0) return null;
+      
+      let totalLines: any[] = [];
+      let fullTextParts: string[] = [];
+      let pageWidth = 1200;
+      let pageHeight = 1600;
+
+      for (let pNum = 1; pNum <= pdfDoc.numPages; pNum++) {
+        const page = await pdfDoc.getPage(pNum);
+        const viewport = page.getViewport({ scale: 1.0 });
+        pageWidth = viewport.width;
+        pageHeight = viewport.height;
+
+        const textContent = await page.getTextContent();
+        if (!textContent.items || textContent.items.length === 0) {
+          continue;
+        }
+
+        const pageLines = textContent.items.map((item: any) => {
+          const tx = item.transform;
+          const x0 = tx[4];
+          const y0 = pageHeight - tx[5] - (item.height || 16);
+          const x1 = x0 + item.width;
+          const y1 = y0 + (item.height || 16);
+
+          return {
+            text: item.str,
+            confidence: 100,
+            bbox: { x0, y0, x1, y1 },
+            words: [
+              {
+                text: item.str,
+                confidence: 100,
+                bbox: { x0, y0, x1, y1 }
+              }
+            ]
+          };
+        });
+
+        totalLines.push(...pageLines);
+        fullTextParts.push(textContent.items.map((item: any) => item.str).join(" "));
+      }
+
+      if (totalLines.length === 0) return null;
+
+      return {
+        success: true,
+        ocrResult: {
+          fullText: fullTextParts.join("\n"),
+          confidence: 100,
+          lines: totalLines
+        },
+        pageWidth,
+        pageHeight
+      };
+    } catch (e) {
+      console.warn("Digital PDF text extraction skipped:", e);
+      return null;
+    }
+  }
+
+  private extractMetadata(fullText: string): { testName: string; subject: string; date: string } {
+    const lines = fullText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+    
+    let testName = "NEET Question Paper";
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const lower = lines[i].toLowerCase();
+      if (
+        lower.includes("mock") || 
+        lower.includes("test") || 
+        lower.includes("exam") || 
+        lower.includes("weekly") || 
+        lower.includes("syllabus") ||
+        lower.includes("paper") ||
+        lower.includes("neet") ||
+        lower.includes("sectional")
+      ) {
+        testName = lines[i];
+        break;
+      }
+    }
+    if (testName === "NEET Question Paper" && lines.length > 0 && lines[0].length < 100) {
+      testName = lines[0];
+    }
+
+    let subject = "physics";
+    const lowerText = fullText.toLowerCase();
+    const hasPhysics = lowerText.includes("physics");
+    const hasChemistry = lowerText.includes("chemistry");
+    const hasBiology = lowerText.includes("biology");
+    const hasBotany = lowerText.includes("botany");
+    const hasZoology = lowerText.includes("zoology");
+
+    if ((hasPhysics && hasChemistry) || (hasPhysics && hasBiology) || (hasChemistry && hasBiology)) {
+      subject = "combined";
+    } else if (hasBiology || (hasBotany && hasZoology)) {
+      subject = "biology";
+    } else if (hasPhysics) {
+      subject = "physics";
+    } else if (hasChemistry) {
+      subject = "chemistry";
+    } else if (hasBotany) {
+      subject = "botany";
+    } else if (hasZoology) {
+      subject = "zoology";
+    }
+
+    let dateStr = new Date().toISOString().split("T")[0];
+    const dateRegex1 = /\b(\d{4})[-/](\d{2})[-/](\d{2})\b/;
+    const dateRegex2 = /\b(\d{2})[-/](\d{2})[-/](\d{4})\b/;
+    const dateRegex3 = /\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})\b/i;
+
+    const match3 = fullText.match(dateRegex3);
+    if (match3) {
+      dateStr = match3[0];
+    } else {
+      const match1 = fullText.match(dateRegex1);
+      if (match1) {
+        dateStr = match1[0];
+      } else {
+        const match2 = fullText.match(dateRegex2);
+        if (match2) {
+          dateStr = match2[0];
+        }
+      }
+    }
+
+    return { testName, subject, date: dateStr };
+  }
+
   /**
    * PDF to images converter.
    * Dynamically loads pdf-img-convert to make the codebase portable.
    */
   private async convertPdfToImages(pdfBuffer: Buffer): Promise<Buffer[]> {
     try {
-      const pdfConvert = require("pdf-img-convert");
+      const moduleName = "pdf-img-convert";
+      const pdfConvert = require(moduleName);
       const pageImages = await pdfConvert.convert(pdfBuffer, {
         width: 1200, // standard rendering scale
       });

@@ -103,7 +103,7 @@ export class MarkDetector {
 
       // Determine if the best score is high enough to count as an attempt
       // Baseline printed letter consumes some pixels, so threshold is normally around 15-20%
-      const attemptThreshold = cv ? 35 : 20; // OpenCV score is calibrated 0-100, Jimp is raw pixel ratio
+      const attemptThreshold = cv ? 25 : 20; // OpenCV score is calibrated 0-100, Jimp is raw pixel ratio
 
       if (bestOption && highestScore > attemptThreshold) {
         q.selectedAnswer = bestOption;
@@ -159,26 +159,35 @@ export class MarkDetector {
           maxArea = area;
         }
 
-        // Circularity check (Circles)
-        const perimeter = cv.arcLength(cnt, true);
-        if (perimeter > 0) {
-          const circularity = (4 * Math.PI * area) / (perimeter * perimeter);
-          if (circularity > 0.6 && area > 50) {
-            hasCircleLikeContour = true;
-          }
-        }
-
         // Bounding rect details
         const r = cv.boundingRect(cnt);
         const aspectRatio = r.width / r.height;
+        const solidity = r.width * r.height > 0 ? area / (r.width * r.height) : 0;
+
+        // Circularity check (Circles)
+        const perimeter = cv.arcLength(cnt, true);
+        let circularity = 0;
+        if (perimeter > 0) {
+          circularity = (4 * Math.PI * area) / (perimeter * perimeter);
+          if (circularity > 0.6 && area > 200) {
+            hasCircleLikeContour = true;
+          }
+        }
 
         // Underline check (long horizontal contour in the lower half of ROI)
         if (aspectRatio > 3.0 && r.width > bbox.width * 0.5 && r.y > bbox.height * 0.5) {
           hasUnderlineContour = true;
         }
 
+        // Reject/Ignore X marks (crossed out):
+        // An X mark is a diagonal cross with square-ish aspect ratio but low solidity (lots of empty space inside bounding box)
+        let isXMark = false;
+        if (aspectRatio > 0.75 && aspectRatio < 1.25 && solidity < 0.25 && circularity < 0.4 && area > 30) {
+          isXMark = true;
+        }
+
         // Tick mark check (diagonal stroke aspect ratio)
-        if (aspectRatio > 0.8 && aspectRatio < 1.8 && r.width > 10 && r.height > 10) {
+        if (!isXMark && aspectRatio > 0.8 && aspectRatio < 1.8 && r.width > 10 && r.height > 10) {
           hasTickLikeContour = true;
         }
       }
@@ -199,6 +208,7 @@ export class MarkDetector {
 
       return Math.min(100, score);
     } catch (e) {
+      console.error("[DEBUG] Error in analyzeMarkOpenCV:", e);
       // Return 0 if rectangle lies outside image boundaries
       return 0;
     }

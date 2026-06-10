@@ -43,6 +43,9 @@ export class OcrEngine {
    * Extracts text, lines, bounding boxes, and word-level character confidence scores.
    */
   async recognizeText(imageBuffer: Buffer): Promise<OcrResult> {
+    if (this.config.ocrLanguage === "simulated") {
+      throw new Error("Simulated OCR engine requested.");
+    }
     const worker = await createWorker(this.config.ocrLanguage);
     
     try {

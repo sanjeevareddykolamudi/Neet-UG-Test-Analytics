@@ -19,6 +19,12 @@ export interface OcrQuestion {
     C: BoundingBox;
     D: BoundingBox;
   };
+  hash?: string;
+  correctAnswer?: string;
+  chapter?: string;
+  topic?: string;
+  explanation?: string;
+  detectedMark?: "A" | "B" | "C" | "D" | "Unattempted";
 }
 
 export interface BoundingBox {
@@ -45,4 +51,7 @@ export interface OcrPipelineResult {
   overallConfidence: number;
   processingTimeMs: number;
   error?: string;
+  testName?: string;
+  subject?: string;
+  date?: string;
 }

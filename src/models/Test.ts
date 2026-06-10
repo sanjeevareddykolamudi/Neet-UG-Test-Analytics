@@ -19,6 +19,7 @@ const testSchema = new Schema(
       default: "pending",
       index: true
     },
+    statusMessage: { type: String, default: "" },
     createdBy: { type: Schema.Types.ObjectId, ref: "User" },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     deletedBy: { type: Schema.Types.ObjectId, ref: "User" },

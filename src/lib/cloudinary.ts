@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from "cloudinary";
+import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
 
 import { env } from "@/lib/env";
 
@@ -10,6 +10,35 @@ cloudinary.config({
 });
 
 export { cloudinary };
+
+export function uploadBuffer(
+  fileBuffer: Buffer,
+  folder: string,
+  filename: string,
+  mimeType: string
+): Promise<UploadApiResponse> {
+  return new Promise((resolve, reject) => {
+    const resourceType = mimeType === "application/pdf" ? "raw" : "image";
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: filename.replace(/\.[^/.]+$/, ""),
+        resource_type: resourceType,
+        overwrite: true
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else if (result) {
+          resolve(result);
+        } else {
+          reject(new Error("Upload failed with no result"));
+        }
+      }
+    );
+    uploadStream.end(fileBuffer);
+  });
+}
 
 export function createUploadSignature(userId: string) {
   const timestamp = Math.round(Date.now() / 1000);
