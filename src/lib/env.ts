@@ -13,15 +13,21 @@ const envSchema = z.object({
   APP_ENV: z.enum(["development", "test", "production"]).default("development")
 });
 
+// Utility to strip surrounding quotes and whitespace from raw environment variables
+const cleanEnvVar = (val: string | undefined): string | undefined => {
+  if (!val) return undefined;
+  return val.trim().replace(/^["']|["']$/g, "").trim();
+};
+
 export const env = envSchema.parse({
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL || undefined,
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || undefined,
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || undefined,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || undefined,
-  MONGODB_URI: process.env.MONGODB_URI || undefined,
-  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || undefined,
-  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || undefined,
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || undefined,
-  CLOUDINARY_UPLOAD_FOLDER: process.env.CLOUDINARY_UPLOAD_FOLDER || undefined,
-  APP_ENV: process.env.APP_ENV || undefined
+  NEXTAUTH_URL: cleanEnvVar(process.env.NEXTAUTH_URL),
+  NEXTAUTH_SECRET: cleanEnvVar(process.env.NEXTAUTH_SECRET),
+  GOOGLE_CLIENT_ID: cleanEnvVar(process.env.GOOGLE_CLIENT_ID),
+  GOOGLE_CLIENT_SECRET: cleanEnvVar(process.env.GOOGLE_CLIENT_SECRET),
+  MONGODB_URI: cleanEnvVar(process.env.MONGODB_URI),
+  CLOUDINARY_CLOUD_NAME: cleanEnvVar(process.env.CLOUDINARY_CLOUD_NAME),
+  CLOUDINARY_API_KEY: cleanEnvVar(process.env.CLOUDINARY_API_KEY),
+  CLOUDINARY_API_SECRET: cleanEnvVar(process.env.CLOUDINARY_API_SECRET),
+  CLOUDINARY_UPLOAD_FOLDER: cleanEnvVar(process.env.CLOUDINARY_UPLOAD_FOLDER),
+  APP_ENV: cleanEnvVar(process.env.APP_ENV)
 });
