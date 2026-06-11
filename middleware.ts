@@ -6,6 +6,7 @@ import { apiRateLimiter } from "@/lib/security/rate-limiter";
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  console.log(`[Middleware] Incoming request: ${request.method} ${path}`);
   
   // 1. Enforce Rate Limiting on all API requests (IP derived from proxy headers for Render compatibility)
   if (path.startsWith("/api/")) {

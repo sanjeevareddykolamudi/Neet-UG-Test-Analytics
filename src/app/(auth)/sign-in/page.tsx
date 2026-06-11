@@ -6,12 +6,24 @@ import { SignInForm } from "@/components/app/sign-in-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function SignInPage() {
-  const session = await getServerSession(authOptions);
+  console.log("[SignInPage] Rendering sign-in page, checking session...");
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+    console.log("[SignInPage] Session checked, user logged in:", !!session?.user?.id);
+  } catch (err) {
+    console.error("[SignInPage] Error retrieving server session:", err);
+  }
 
   if (session?.user?.id) {
+    console.log("[SignInPage] Redirecting logged-in user to /dashboard");
     redirect("/dashboard");
   }
+
+  console.log("[SignInPage] Returning sign-in page component markup");
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12 md:py-24">
