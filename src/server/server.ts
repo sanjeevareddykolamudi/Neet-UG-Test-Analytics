@@ -1,3 +1,4 @@
+import "./load-env";
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -13,20 +14,6 @@ import uploadsRouter from "./routes/uploads";
 import questionsRouter from "./routes/questions";
 import mistakesRouter from "./routes/mistakes";
 import revisionRouter from "./routes/revision";
-
-import fs from "fs";
-
-// Load local .env file natively if it exists (Node 20+)
-if (fs.existsSync(".env")) {
-  try {
-    if (typeof (process as any).loadEnvFile === "function") {
-      (process as any).loadEnvFile(".env");
-      console.log("[Server] Loaded local .env file natively.");
-    }
-  } catch (err) {
-    console.warn("[Server] Failed to load .env natively:", err);
-  }
-}
 
 const isProduction = process.env.APP_ENV === "production" || process.env.NODE_ENV === "production";
 const PORT = isProduction ? (process.env.PORT || 10000) : 5000;
