@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, @typescript-eslint/no-unused-vars */
-import Jimp from "jimp";
+import type Jimp from "jimp";
 import { OcrQuestion, BoundingBox } from "./types";
 
 // OpenCV loading wrapper
@@ -61,7 +61,8 @@ export class MarkDetector {
   ): Promise<OcrQuestion[]> {
     const cvWrapper = await loadOpenCV();
     const cv = cvWrapper?.cv;
-    const jimpImage = await Jimp.read(enhancedBuffer);
+    const JimpVal = require("jimp");
+    const jimpImage = await JimpVal.read(enhancedBuffer);
     
     for (const q of questions) {
       const rois = q.roiCoordinates;
@@ -229,7 +230,8 @@ export class MarkDetector {
         
         if (px >= 0 && px < jimpImage.bitmap.width && py >= 0 && py < jimpImage.bitmap.height) {
           const hex = jimpImage.getPixelColor(px, py);
-          const { r, g, b } = Jimp.intToRGBA(hex);
+          const JimpVal = require("jimp");
+          const { r, g, b } = JimpVal.intToRGBA(hex);
           // Greyscale intensity
           const intensity = 0.299 * r + 0.587 * g + 0.114 * b;
           // In binarized enhanced scans, background is white (255) and print is black (0)

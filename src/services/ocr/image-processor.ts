@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-require-imports, prefer-const */
-import Jimp from "jimp";
+import type Jimp from "jimp";
 import { OcrPipelineConfig } from "./types";
 
 // OpenCV loading wrapper
@@ -53,7 +53,8 @@ export class ImageProcessor {
    * Decodes PNG/JPG buffer using Jimp
    */
   async decodeImage(imageBuffer: Buffer): Promise<Jimp> {
-    return Jimp.read(imageBuffer);
+    const JimpVal = require("jimp");
+    return JimpVal.read(imageBuffer);
   }
 
   /**
@@ -96,7 +97,8 @@ export class ImageProcessor {
       // Simple contrast enhancement and greyscale
       processedJimp = processedJimp.greyscale().contrast(0.4);
       
-      const buffer = await processedJimp.getBufferAsync(Jimp.MIME_PNG);
+      const JimpVal = require("jimp");
+      const buffer = await processedJimp.getBufferAsync(JimpVal.MIME_PNG);
       return {
         enhancedBuffer: buffer,
         skewAngle: 0,
@@ -189,7 +191,8 @@ export class ImageProcessor {
         console.warn("Failed to write debug enhanced image:", e);
       }
     }
-    const buffer = await finalJimp.getBufferAsync(Jimp.MIME_PNG);
+    const JimpVal = require("jimp");
+    const buffer = await finalJimp.getBufferAsync(JimpVal.MIME_PNG);
 
     // Cleanup OpenCV allocations
     gray.delete();
@@ -227,7 +230,8 @@ export class ImageProcessor {
       rgbaMat = mat.clone();
     }
     
-    const jimp = new Jimp(width, height);
+    const JimpVal = require("jimp");
+    const jimp = new JimpVal(width, height);
     jimp.bitmap.data = Buffer.from(rgbaMat.data);
     rgbaMat.delete();
     return jimp;

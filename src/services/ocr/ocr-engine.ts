@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createWorker } from "tesseract.js";
 import { OcrPipelineConfig } from "./types";
 
 export interface OcrWordInfo {
@@ -46,7 +45,8 @@ export class OcrEngine {
     if (this.config.ocrLanguage === "simulated") {
       throw new Error("Simulated OCR engine requested.");
     }
-    const worker = await createWorker(this.config.ocrLanguage);
+    const tesseract = await import("tesseract.js");
+    const worker = await tesseract.createWorker(this.config.ocrLanguage);
     
     try {
       

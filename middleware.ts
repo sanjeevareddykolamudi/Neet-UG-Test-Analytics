@@ -6,6 +6,15 @@ import { apiRateLimiter } from "@/lib/security/rate-limiter";
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  
+  if (path === "/health") {
+    console.log("[Middleware] Health check pinged - returning 200 OK");
+    return new NextResponse("OK", {
+      status: 200,
+      headers: { "Content-Type": "text/plain" }
+    });
+  }
+
   console.log(`[Middleware] Incoming request: ${request.method} ${path}`);
   
   // 1. Enforce Rate Limiting on all API requests (IP derived from proxy headers for Render compatibility)
