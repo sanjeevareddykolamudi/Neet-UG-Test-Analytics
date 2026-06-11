@@ -9,19 +9,23 @@ class InMemoryRateLimiter {
   private store = new Map<string, number[]>();
   private limit: number;
   private windowMs: number;
+  private lastCleanup: number;
 
   constructor(limit: number = 60, windowMs: number = 60000) {
     this.limit = limit;
     this.windowMs = windowMs;
-
-    // Periodically clean up expired entries from memory (every 10 minutes)
-    if (typeof window === "undefined") {
-      setInterval(() => this.cleanup(), 10 * 60 * 1000);
-    }
+    this.lastCleanup = Date.now();
   }
 
   check(ip: string): RateLimitInfo {
     const now = Date.now();
+
+    // Lazy cleanup every 10 minutes to prevent memory leaks without background timers
+    if (now - this.lastCleanup > 10 * 60 * 1000) {
+      this.cleanup();
+      this.lastCleanup = now;
+    }
+
     const windowStart = now - this.windowMs;
 
     let requests = this.store.get(ip) || [];
