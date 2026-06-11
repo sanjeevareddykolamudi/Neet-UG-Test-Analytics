@@ -16,103 +16,50 @@ interface PaperDoc {
   totalQuestions: number;
 }
 
-const initialPapers: PaperDoc[] = [
-  {
-    id: "doc-1",
-    name: "NEET_2025_Original_Syllabus.pdf",
-    size: "4.8 MB",
-    uploadedAt: "2026-06-08 14:32",
-    pages: 24,
-    status: "completed",
-    marksDetected: 172,
-    totalQuestions: 180
-  },
-  {
-    id: "doc-2",
-    name: "Allen_All_India_Test_08_Scanned.pdf",
-    size: "12.4 MB",
-    uploadedAt: "2026-06-01 09:15",
-    pages: 28,
-    status: "completed",
-    marksDetected: 168,
-    totalQuestions: 180
-  },
-  {
-    id: "doc-3",
-    name: "Thermodynamics_Weekly_Test.png",
-    size: "2.1 MB",
-    uploadedAt: "2026-06-09 21:05",
-    pages: 1,
-    status: "parsing",
-    marksDetected: null,
-    totalQuestions: 45
-  },
-  {
-    id: "doc-4",
-    name: "Genetics_NCERT_Revision_Questions.pdf",
-    size: "6.2 MB",
-    uploadedAt: "2026-06-09 22:00",
-    pages: 8,
-    status: "pending_review",
-    marksDetected: 35,
-    totalQuestions: 90
-  }
-];
+const initialPapers: PaperDoc[] = [];
 
 export default function QuestionPapersPage() {
   const [papers, setPapers] = useState<PaperDoc[]>(initialPapers);
   const [search, setSearch] = useState("");
   const [scanningId, setScanningId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("neet_papers");
-      if (stored) {
-        try {
-          setPapers(JSON.parse(stored));
-        } catch (e) {
-          console.error(e);
+  const fetchPapers = async () => {
+    try {
+      const res = await fetch("/api/tests");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tests) {
+          const mapped: PaperDoc[] = data.tests.map((t: any) => ({
+            id: t._id || t.id,
+            name: t.testName,
+            size: "N/A",
+            uploadedAt: new Date(t.createdAt || t.testDate).toLocaleDateString(),
+            pages: 1,
+            status: t.processingStatus === "completed" ? "completed" :
+                    t.processingStatus === "processing" ? "parsing" :
+                    t.processingStatus === "failed" ? "failed" : "pending_review",
+            marksDetected: t.score,
+            totalQuestions: t.totalQuestions || 180
+          }));
+          setPapers(mapped);
         }
-      } else {
-        localStorage.setItem("neet_papers", JSON.stringify(initialPapers));
       }
+    } catch (e) {
+      console.error("Failed to fetch papers:", e);
     }
+  };
+
+  useEffect(() => {
+    fetchPapers();
+    const interval = setInterval(fetchPapers, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerScan = async (id: string) => {
+    // Background OCR runs automatically upon upload. 
+    // This button is kept for compatibility with UI states but does not mutate client-side localStorage mock data.
     setScanningId(id);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    
-    setPapers((prev) => {
-      const updated = prev.map((doc) =>
-        doc.id === id
-          ? {
-              ...doc,
-              status: "completed" as const,
-              marksDetected: doc.totalQuestions - 5,
-            }
-          : doc
-      );
-      localStorage.setItem("neet_papers", JSON.stringify(updated));
-      return updated;
-    });
-
-    // Also update matching test status in neet_tests
-    const storedTestsStr = localStorage.getItem("neet_tests");
-    if (storedTestsStr) {
-      try {
-        const currentTests = JSON.parse(storedTestsStr);
-        const updatedTests = currentTests.map((t: any) =>
-          t.id === id
-            ? { ...t, status: "analyzed" as const, score: (t.questionsCount - 5) * 4 } // mock scoring physics/chemistry details
-            : t
-        );
-        localStorage.setItem("neet_tests", JSON.stringify(updatedTests));
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setScanningId(null);
   };
 

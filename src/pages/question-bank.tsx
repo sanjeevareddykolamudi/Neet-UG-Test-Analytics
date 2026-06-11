@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, BookOpen, AlertTriangle, CheckCircle, HelpCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, BookOpen, AlertTriangle, CheckCircle, HelpCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,84 +16,37 @@ interface BankQuestion {
   explanation: string;
 }
 
-const mockQuestions: BankQuestion[] = [
-  {
-    id: "q-1",
-    code: "NEET-26-P15",
-    text: "Calculate the efficiency of a Carnot engine working between temperatures of 127°C and 27°C.",
-    subject: "Physics",
-    topic: "Thermodynamics",
-    difficulty: "Hard",
-    status: "incorrect",
-    options: [
-      { key: "A", text: "25%" },
-      { key: "B", text: "50%" },
-      { key: "C", text: "75%" },
-      { key: "D", text: "33.3%" }
-    ],
-    correctOption: "A",
-    explanation: "Carnot Efficiency = 1 - (T_cold / T_hot) where T must be in Kelvin. T_cold = 27 + 273 = 300K, T_hot = 127 + 273 = 400K. Efficiency = 1 - (300/400) = 1/4 = 25%."
-  },
-  {
-    id: "q-2",
-    code: "NEET-26-C43",
-    text: "For a first-order reaction, the time required for 99% completion is how many times the half-life (t1/2) of the reaction?",
-    subject: "Chemistry",
-    topic: "Chemical Kinetics",
-    difficulty: "Medium",
-    status: "correct",
-    options: [
-      { key: "A", text: "2 times" },
-      { key: "B", text: "10 times" },
-      { key: "C", text: "6.6 times" },
-      { key: "D", text: "4 times" }
-    ],
-    correctOption: "C",
-    explanation: "t_99% = (2.303/k) * log(100/1) = 4.606/k. Half life t_1/2 = 0.693/k. t_99% / t_1/2 = 4.606 / 0.693 = 6.64 times."
-  },
-  {
-    id: "q-3",
-    code: "NEET-26-B89",
-    text: "Which of the following Mendelian disorders is a sex-linked recessive genetic trait?",
-    subject: "Botany",
-    topic: "Genetics & Inheritance",
-    difficulty: "Easy",
-    status: "correct",
-    options: [
-      { key: "A", text: "Sickle-cell anemia" },
-      { key: "B", text: "Haemophilia" },
-      { key: "C", text: "Phenylketonuria" },
-      { key: "D", text: "Thalassemia" }
-    ],
-    correctOption: "B",
-    explanation: "Haemophilia and Color blindness are sex-linked (X-linked) recessive disorders. Sickle cell, PKU, and Thalassemia are autosomal recessive."
-  },
-  {
-    id: "q-4",
-    code: "NEET-26-Z121",
-    text: "What is the partial pressure of oxygen (pO2) in the alveoli of the lungs compared to that in the atmosphere?",
-    subject: "Zoology",
-    topic: "Breathing & Respiration",
-    difficulty: "Medium",
-    status: "incorrect",
-    options: [
-      { key: "A", text: "Higher than atmospheric pO2" },
-      { key: "B", text: "Lower than atmospheric pO2" },
-      { key: "C", text: "Exactly equal to atmospheric pO2" },
-      { key: "D", text: "Variable based on temperature" }
-    ],
-    correctOption: "B",
-    explanation: "Atmospheric pO2 is approximately 159 mmHg, whereas alveolar pO2 is around 104 mmHg. Thus, alveolar pO2 is lower than atmospheric pO2 due to residual volume and gas exchange mixing."
-  }
-];
+const mockQuestions: BankQuestion[] = [];
+
 
 export default function QuestionBankPage() {
-  const [questions] = useState<BankQuestion[]>(mockQuestions);
+  const [questions, setQuestions] = useState<BankQuestion[]>(mockQuestions);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedQuestion, setSelectedQuestion] = useState<BankQuestion | null>(null);
+
+  const fetchQuestions = async () => {
+    try {
+      const res = await fetch("/api/questions");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.questions) {
+          setQuestions(data.questions);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch questions:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
 
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch = q.text.toLowerCase().includes(search.toLowerCase()) || q.topic.toLowerCase().includes(search.toLowerCase()) || q.code.toLowerCase().includes(search.toLowerCase());
@@ -189,7 +142,11 @@ export default function QuestionBankPage() {
           </Card>
 
           <div className="space-y-3">
-            {filteredQuestions.length === 0 ? (
+            {loading ? (
+              <div className="flex h-32 items-center justify-center text-xs text-muted-foreground font-semibold">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> Loading question bank...
+              </div>
+            ) : filteredQuestions.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-12 text-center text-xs text-muted-foreground">
                 No questions match the selected search criteria.
               </div>

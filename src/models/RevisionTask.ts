@@ -5,6 +5,7 @@ const revisionTaskSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     topic: { type: String, required: true, trim: true },
     chapter: { type: String, required: true, trim: true },
+    subject: { type: String, trim: true, default: "physics" },
     priority: { type: String, enum: ["low", "medium", "high"], default: "medium", index: true },
     dueDate: { type: Date, required: true, index: true },
     status: {
@@ -14,6 +15,7 @@ const revisionTaskSchema = new Schema(
       index: true
     },
     completedAt: { type: Date },
+    notes: { type: String, trim: true, default: "" },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null }
   },

@@ -1,35 +1,47 @@
-import { useState } from "react";
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
+import { useState, useEffect } from "react";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Cell } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
-const detailSubjectStats = [
-  { subject: "Physics", attempted: 360, correct: 245, incorrect: 98, unattempted: 17, accuracy: 68 },
-  { subject: "Chemistry", attempted: 360, correct: 281, incorrect: 64, unattempted: 15, accuracy: 78 },
-  { subject: "Botany", attempted: 360, correct: 317, incorrect: 34, unattempted: 9, accuracy: 88 },
-  { subject: "Zoology", attempted: 360, correct: 302, incorrect: 47, unattempted: 11, accuracy: 84 }
-];
-
-const mockTopicRadar = [
-  { topic: "Mechanics", A: 65, fullMark: 100 },
-  { topic: "Thermodynamics", A: 55, fullMark: 100 },
-  { topic: "Inorganic", A: 78, fullMark: 100 },
-  { topic: "Organic", A: 82, fullMark: 100 },
-  { topic: "Genetics", A: 91, fullMark: 100 },
-  { topic: "Human Physio", A: 88, fullMark: 100 }
-];
-
-const mockMonthlyTrend = [
-  { month: "Jan", score: 490 },
-  { month: "Feb", score: 520 },
-  { month: "Mar", score: 535 },
-  { month: "Apr", score: 560 },
-  { month: "May", score: 590 },
-  { month: "Jun", score: 645 }
-];
+const detailSubjectStats: any[] = [];
+const mockTopicRadar: any[] = [];
+const mockMonthlyTrend: any[] = [];
 
 export default function AnalyticsPage() {
   const [timeframe, setTimeframe] = useState("3m");
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAnalytics = async () => {
+    try {
+      const res = await fetch("/api/analytics");
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (e) {
+      console.error("Failed to fetch analytics:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center text-xs text-muted-foreground font-semibold">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> Loading analytics metrics...
+      </div>
+    );
+  }
+
+  const subjectAccuracy = data?.subjectAccuracy || [];
+  const monthlyTrend = data?.monthlyTrend || [];
+  const topicRadar = data?.topicRadar || [];
 
   return (
     <div className="space-y-6">
@@ -71,7 +83,7 @@ export default function AnalyticsPage() {
           <CardContent className="pt-4">
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={mockMonthlyTrend} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
+                <LineChart data={monthlyTrend} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border)/0.3)" />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 10 }} />
                   <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10 }} domain={[400, 720]} />
@@ -106,7 +118,7 @@ export default function AnalyticsPage() {
           <CardContent className="pt-4 flex items-center justify-center">
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={mockTopicRadar}>
+                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={topicRadar}>
                   <PolarGrid stroke="hsl(var(--border)/0.4)" />
                   <PolarAngleAxis dataKey="topic" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))", fontWeight: "bold" }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
@@ -152,7 +164,14 @@ export default function AnalyticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {detailSubjectStats.map((item) => (
+                {subjectAccuracy.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground font-medium">
+                      No question attempts logged to compute detailed subject accuracy.
+                    </td>
+                  </tr>
+                ) : (
+                  subjectAccuracy.map((item: any) => (
                   <tr
                     key={item.subject}
                     className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors"
@@ -176,7 +195,8 @@ export default function AnalyticsPage() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -2,6 +2,7 @@ export interface SummaryStats {
   totalTests: number;
   averageMarks: number; // e.g. out of 720
   bestScore: number; // e.g. out of 720
+  bestScoreTestName?: string;
   currentRank: number;
   weakTopicsCount: number;
   pendingRevisionTasksCount: number;
@@ -126,5 +127,6 @@ export interface DashboardData {
   chapterAccuracy: ChapterAccuracyPoint[];
   topicMasteryTrend: TopicMasteryTrendPoint[];
   recentUploads: RecentUpload[];
+  recentExams?: any[];
   mostRepeatedMistakes: MostRepeatedMistake[];
 }

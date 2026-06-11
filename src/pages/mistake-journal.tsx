@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Search, CheckCircle, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, CheckCircle, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,55 +18,11 @@ interface JournalMistake {
   status: "review_needed" | "resolved";
 }
 
-const initialMistakes: JournalMistake[] = [
-  {
-    id: "mis-1",
-    testName: "NEET Mock 8",
-    questionNumber: 15,
-    subject: "Physics",
-    topic: "Thermodynamics",
-    markedOption: "B",
-    correctOption: "A",
-    conceptsToRevise: "Carnot Engine work efficiency formula conversion into Kelvin temperatures",
-    status: "review_needed"
-  },
-  {
-    id: "mis-2",
-    testName: "NEET Mock 8",
-    questionNumber: 42,
-    subject: "Chemistry",
-    topic: "Equilibrium",
-    markedOption: "C",
-    correctOption: "D",
-    conceptsToRevise: "Le Chatelier's principle pressure effects on gaseous reactions",
-    status: "review_needed"
-  },
-  {
-    id: "mis-3",
-    testName: "NEET Mock 7",
-    questionNumber: 110,
-    subject: "Botany",
-    topic: "Genetics & Inheritance",
-    markedOption: "A",
-    correctOption: "B",
-    conceptsToRevise: "Pedigree analysis sex-linked recessive transmission mapping",
-    status: "resolved"
-  },
-  {
-    id: "mis-4",
-    testName: "NEET Mock 6",
-    questionNumber: 135,
-    subject: "Zoology",
-    topic: "Human Physiology",
-    markedOption: "D",
-    correctOption: "C",
-    conceptsToRevise: "Hormonal secretion feedback loops in digestion and gastric acid triggers",
-    status: "resolved"
-  }
-];
+const initialMistakes: JournalMistake[] = [];
 
 export default function MistakeJournalPage() {
   const [mistakes, setMistakes] = useState<JournalMistake[]>(initialMistakes);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -81,45 +37,98 @@ export default function MistakeJournalPage() {
   const [correct, setCorrect] = useState("A");
   const [concepts, setConcepts] = useState("");
 
-  const handleAddMistake = (e: React.FormEvent) => {
+  const fetchMistakes = async () => {
+    try {
+      const res = await fetch("/api/mistakes");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.mistakes) {
+          setMistakes(data.mistakes);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch mistakes:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMistakes();
+  }, []);
+
+  const handleAddMistake = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testName || !qNumber || !topic || !concepts) return;
 
-    const newMistake: JournalMistake = {
-      id: `mis-${Date.now()}`,
-      testName,
-      questionNumber: parseInt(qNumber),
-      subject,
-      topic,
-      markedOption: marked,
-      correctOption: correct,
-      conceptsToRevise: concepts,
-      status: "review_needed"
-    };
+    try {
+      const res = await fetch("/api/mistakes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testName,
+          questionNumber: parseInt(qNumber),
+          subject,
+          topic,
+          markedOption: marked,
+          correctOption: correct,
+          conceptsToRevise: concepts
+        })
+      });
 
-    setMistakes([newMistake, ...mistakes]);
-    setShowAddForm(false);
-    
-    // Clear inputs
-    setTestName("");
-    setQNumber("");
-    setTopic("");
-    setConcepts("");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.mistake) {
+          setMistakes([data.mistake, ...mistakes]);
+          setShowAddForm(false);
+          // Clear inputs
+          setTestName("");
+          setQNumber("");
+          setTopic("");
+          setConcepts("");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setMistakes(
-      mistakes.map((m) =>
-        m.id === id
-          ? { ...m, status: m.status === "review_needed" ? "resolved" : "review_needed" }
-          : m
-      )
-    );
+  const toggleStatus = async (id: string) => {
+    const target = mistakes.find((m) => m.id === id);
+    if (!target) return;
+
+    const newStatus = target.status === "review_needed" ? "resolved" : "review_needed";
+    try {
+      const res = await fetch(`/api/mistakes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res.ok) {
+        setMistakes(
+          mistakes.map((m) =>
+            m.id === id ? { ...m, status: newStatus } : m
+          )
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteMistake = (id: string) => {
+  const deleteMistake = async (id: string) => {
     if (confirm("Delete this mistake from your journal?")) {
-      setMistakes(mistakes.filter((m) => m.id !== id));
+      try {
+        const res = await fetch(`/api/mistakes/${id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setMistakes(mistakes.filter((m) => m.id !== id));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -297,7 +306,11 @@ export default function MistakeJournalPage() {
 
       {/* Mistake Entries List */}
       <div className="space-y-4">
-        {filteredMistakes.length === 0 ? (
+        {loading ? (
+          <div className="flex h-32 items-center justify-center text-xs text-muted-foreground font-semibold">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> Loading mistake journal...
+          </div>
+        ) : filteredMistakes.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-12 text-center text-xs text-muted-foreground">
             No logged mistakes fit the selected category filter.
           </div>

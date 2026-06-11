@@ -91,6 +91,7 @@ function DashboardContent() {
     recentActivities,
     revisionTasks,
     recentUploads,
+    recentExams,
     mostRepeatedMistakes
   } = dashboardData;
 
@@ -170,8 +171,8 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="p-3.5 pt-0">
             <div className="text-xl font-extrabold">{summary.averageMarks}</div>
-            <p className="text-[9px] text-muted-foreground font-medium flex items-center gap-1">
-              <span className="text-emerald-500 font-bold">+15</span> last 3 tests
+            <p className="text-[9px] text-muted-foreground font-medium">
+              Across all graded attempts
             </p>
           </CardContent>
         </Card>
@@ -186,7 +187,7 @@ function DashboardContent() {
           </CardHeader>
           <CardContent className="p-3.5 pt-0">
             <div className="text-xl font-extrabold">{summary.bestScore}</div>
-            <p className="text-[9px] text-muted-foreground font-medium">Mock 8</p>
+            <p className="text-[9px] text-muted-foreground font-medium">{summary.bestScoreTestName || "Highest mock score"}</p>
           </CardContent>
         </Card>
 
@@ -707,33 +708,36 @@ function DashboardContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { title: "NEET Full Syllabus Mock 08", score: 645, total: 720, accuracy: 89, date: "06/08" },
-                    { title: "NEET Full Syllabus Mock 07", score: 615, total: 720, accuracy: 85, date: "06/01" },
-                    { title: "NEET Physics Mechanics Sectional", score: 145, total: 180, accuracy: 80, date: "05/24" },
-                    { title: "NEET Chemistry Organic Sectional", score: 152, total: 180, accuracy: 84, date: "05/18" },
-                  ].map((exam, i) => (
-                    <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="p-3 pl-4 font-bold text-foreground">
-                        {exam.title}
-                        <span className="text-[10px] text-muted-foreground font-normal block sm:inline sm:ml-2">({exam.date})</span>
-                      </td>
-                      <td className="p-3 font-extrabold text-primary">{exam.score} <span className="text-[10px] text-muted-foreground font-normal">/ {exam.total}</span></td>
-                      <td className="p-3 font-semibold">
-                        <div className="flex items-center gap-1.5">
-                          <span>{exam.accuracy}%</span>
-                          <div className="h-1.5 w-12 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-primary rounded-full" style={{ width: `${exam.accuracy}%` }} />
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3 text-right pr-4">
-                        <Button asChild size="icon" variant="ghost" className="h-7 w-7 rounded-lg">
-                          <Link to="/analytics"><ArrowUpRight className="h-3.5 w-3.5" /></Link>
-                        </Button>
+                  {!recentExams || recentExams.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-muted-foreground font-medium">
+                        No graded mock exams found. Upload and process a test paper.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    recentExams.map((exam, i) => (
+                      <tr key={i} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
+                        <td className="p-3 pl-4 font-bold text-foreground">
+                          {exam.title}
+                          <span className="text-[10px] text-muted-foreground font-normal block sm:inline sm:ml-2">({exam.date})</span>
+                        </td>
+                        <td className="p-3 font-extrabold text-primary">{exam.score} <span className="text-[10px] text-muted-foreground font-normal">/ {exam.total}</span></td>
+                        <td className="p-3 font-semibold">
+                          <div className="flex items-center gap-1.5">
+                            <span>{exam.accuracy}%</span>
+                            <div className="h-1.5 w-12 bg-muted rounded-full overflow-hidden">
+                              <div className="h-full bg-primary rounded-full" style={{ width: `${exam.accuracy}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3 text-right pr-4">
+                          <Button asChild size="icon" variant="ghost" className="h-7 w-7 rounded-lg">
+                            <Link to="/analytics"><ArrowUpRight className="h-3.5 w-3.5" /></Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

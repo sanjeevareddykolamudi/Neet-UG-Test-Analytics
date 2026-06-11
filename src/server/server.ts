@@ -10,6 +10,9 @@ import testsRouter from "./routes/tests";
 import dashboardRouter from "./routes/dashboard";
 import analyticsRouter from "./routes/analytics";
 import uploadsRouter from "./routes/uploads";
+import questionsRouter from "./routes/questions";
+import mistakesRouter from "./routes/mistakes";
+import revisionRouter from "./routes/revision";
 
 import fs from "fs";
 
@@ -50,6 +53,9 @@ app.use("/api/tests", testsRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/uploads", uploadsRouter);
+app.use("/api/questions", questionsRouter);
+app.use("/api/mistakes", mistakesRouter);
+app.use("/api/revision-tasks", revisionRouter);
 
 // Serve Static React assets in Production
 const clientPath = path.resolve(__dirname, "../../dist/client");

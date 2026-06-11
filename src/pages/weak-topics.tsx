@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertTriangle, CheckCircle2, Award, CalendarPlus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, CheckCircle2, Award, CalendarPlus, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,76 +16,58 @@ interface WeakTopic {
   status: "critical" | "warning";
 }
 
-const initialWeakTopics: WeakTopic[] = [
-  {
-    id: "wt-1",
-    topic: "Rotational Dynamics & Torque",
-    subject: "Physics",
-    accuracy: 45,
-    incorrectQuestions: 12,
-    unattemptedQuestions: 4,
-    weightage: "High",
-    status: "critical"
-  },
-  {
-    id: "wt-2",
-    topic: "Chemical & Ionic Equilibrium",
-    subject: "Chemistry",
-    accuracy: 52,
-    incorrectQuestions: 8,
-    unattemptedQuestions: 6,
-    weightage: "High",
-    status: "critical"
-  },
-  {
-    id: "wt-3",
-    topic: "Thermodynamics & Heat Cycles",
-    subject: "Physics",
-    accuracy: 55,
-    incorrectQuestions: 10,
-    unattemptedQuestions: 2,
-    weightage: "High",
-    status: "critical"
-  },
-  {
-    id: "wt-4",
-    topic: "Electrostatics & Capacitors",
-    subject: "Physics",
-    accuracy: 60,
-    incorrectQuestions: 9,
-    unattemptedQuestions: 3,
-    weightage: "Medium",
-    status: "warning"
-  },
-  {
-    id: "wt-5",
-    topic: "Hydrocarbons & Isomerism",
-    subject: "Chemistry",
-    accuracy: 62,
-    incorrectQuestions: 7,
-    unattemptedQuestions: 5,
-    weightage: "Medium",
-    status: "warning"
-  },
-  {
-    id: "wt-6",
-    topic: "Photosynthesis in Higher Plants",
-    subject: "Botany",
-    accuracy: 74,
-    incorrectQuestions: 4,
-    unattemptedQuestions: 2,
-    weightage: "High",
-    status: "warning"
-  }
-];
+const initialWeakTopics: WeakTopic[] = [];
 
 export default function WeakTopicsPage() {
-  const [weakTopics] = useState<WeakTopic[]>(initialWeakTopics);
+  const [weakTopics, setWeakTopics] = useState<WeakTopic[]>(initialWeakTopics);
+  const [loading, setLoading] = useState(true);
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [plannedIds, setPlannedIds] = useState<string[]>([]);
 
-  const planRevision = (id: string) => {
-    setPlannedIds([...plannedIds, id]);
+  const fetchWeakTopics = async () => {
+    try {
+      const res = await fetch("/api/analytics/weak-topics");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.weakTopics) {
+          setWeakTopics(data.weakTopics);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch weak topics:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeakTopics();
+  }, []);
+
+  const planRevision = async (id: string, topic: string, subject: string, priority: string) => {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const dueDateStr = tomorrow.toISOString().split("T")[0];
+
+      const res = await fetch("/api/revision-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: `${topic} formulas active recall`,
+          subject,
+          dueDate: dueDateStr,
+          priority: priority === "High" ? "High" : priority === "Medium" ? "Medium" : "Low",
+          notes: `System planned revision task for weak topic ${topic} with ${priority} weightage.`
+        })
+      });
+
+      if (res.ok) {
+        setPlannedIds([...plannedIds, id]);
+      }
+    } catch (e) {
+      console.error("Failed to plan revision:", e);
+    }
   };
 
   const filteredTopics = weakTopics.filter((t) => {
@@ -160,83 +142,93 @@ export default function WeakTopicsPage() {
       </Card>
 
       {/* Weak Chapter Progress Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {filteredTopics.map((item) => {
-          const isCritical = item.accuracy < 60;
-          const isPlanned = plannedIds.includes(item.id);
+      {loading ? (
+        <div className="flex h-32 items-center justify-center text-xs text-muted-foreground font-semibold">
+          <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> Loading weak chapters...
+        </div>
+      ) : filteredTopics.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-12 text-center text-xs text-muted-foreground">
+          No weak chapters identified (&lt;60% accuracy). Keep up the great work!
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {filteredTopics.map((item) => {
+            const isCritical = item.accuracy < 60;
+            const isPlanned = plannedIds.includes(item.id);
 
-          return (
-            <Card key={item.id} className="border-border/40 bg-card/60 backdrop-blur-sm shadow-sm transition hover:shadow-md">
-              <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-bold">{item.subject}</Badge>
-                      <Badge
-                        variant={item.weightage === "High" ? "destructive" : item.weightage === "Medium" ? "warning" : "info"}
-                        className="px-1.5 py-0 text-[10px] font-bold"
-                      >
-                        {item.weightage} Weightage
-                      </Badge>
+            return (
+              <Card key={item.id} className="border-border/40 bg-card/60 backdrop-blur-sm shadow-sm transition hover:shadow-md">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-bold">{item.subject}</Badge>
+                        <Badge
+                          variant={item.weightage === "High" ? "destructive" : item.weightage === "Medium" ? "warning" : "info"}
+                          className="px-1.5 py-0 text-[10px] font-bold"
+                        >
+                          {item.weightage} Weightage
+                        </Badge>
+                      </div>
+                      <CardTitle className="text-sm font-extrabold mt-1.5">{item.topic}</CardTitle>
                     </div>
-                    <CardTitle className="text-sm font-extrabold mt-1.5">{item.topic}</CardTitle>
+                    <Badge variant={isCritical ? "destructive" : "warning"} className="font-bold text-[10px]">
+                      {item.accuracy}% Accuracy
+                    </Badge>
                   </div>
-                  <Badge variant={isCritical ? "destructive" : "warning"} className="font-bold text-[10px]">
-                    {item.accuracy}% Accuracy
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-2 space-y-4 text-xs font-semibold">
-                {/* Accuracy Loading Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-                    <span>Performance Accuracy</span>
-                    <span>{item.accuracy}%</span>
+                </CardHeader>
+                <CardContent className="p-4 pt-2 space-y-4 text-xs font-semibold">
+                  {/* Accuracy Loading Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
+                      <span>Performance Accuracy</span>
+                      <span>{item.accuracy}%</span>
+                    </div>
+                    <Progress
+                      value={item.accuracy}
+                      className={`h-2 ${isCritical ? "[&>div]:bg-destructive" : "[&>div]:bg-amber-500"}`}
+                    />
                   </div>
-                  <Progress
-                    value={item.accuracy}
-                    className={`h-2 ${isCritical ? "[&>div]:bg-destructive" : "[&>div]:bg-amber-500"}`}
-                  />
-                </div>
 
-                {/* Incorrect Details */}
-                <div className="grid grid-cols-2 gap-2 text-[10px] bg-muted/30 p-2.5 rounded-lg border border-border/20">
-                  <div className="text-center border-r border-border/20">
-                    <span className="text-muted-foreground font-medium">Incorrect Answers</span>
-                    <p className="text-sm font-extrabold text-destructive mt-0.5">{item.incorrectQuestions}</p>
+                  {/* Incorrect Details */}
+                  <div className="grid grid-cols-2 gap-2 text-[10px] bg-muted/30 p-2.5 rounded-lg border border-border/20">
+                    <div className="text-center border-r border-border/20">
+                      <span className="text-muted-foreground font-medium">Incorrect Answers</span>
+                      <p className="text-sm font-extrabold text-destructive mt-0.5">{item.incorrectQuestions}</p>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-muted-foreground font-medium">Unattempted Questions</span>
+                      <p className="text-sm font-extrabold text-muted-foreground mt-0.5">{item.unattemptedQuestions}</p>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <span className="text-muted-foreground font-medium">Unattempted Questions</span>
-                    <p className="text-sm font-extrabold text-muted-foreground mt-0.5">{item.unattemptedQuestions}</p>
-                  </div>
-                </div>
 
-                <div className="flex justify-end pt-1">
-                  <Button
-                    size="sm"
-                    variant={isPlanned ? "outline" : "default"}
-                    onClick={() => planRevision(item.id)}
-                    disabled={isPlanned}
-                    className="h-8 text-[10px] font-bold gap-1 shadow shadow-primary/5"
-                  >
-                    {isPlanned ? (
-                      <>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        Added to Planner
-                      </>
-                    ) : (
-                      <>
-                        <CalendarPlus className="h-3.5 w-3.5" />
-                        Plan Active Revision
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant={isPlanned ? "outline" : "default"}
+                      onClick={() => planRevision(item.id, item.topic, item.subject, item.weightage)}
+                      disabled={isPlanned}
+                      className="h-8 text-[10px] font-bold gap-1 shadow shadow-primary/5"
+                    >
+                      {isPlanned ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          Added to Planner
+                        </>
+                      ) : (
+                        <>
+                          <CalendarPlus className="h-3.5 w-3.5" />
+                          Plan Active Revision
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

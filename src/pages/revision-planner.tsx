@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Clock, CheckCircle2, Circle, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Clock, CheckCircle2, Circle, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,94 +16,105 @@ interface RevisionItem {
   notes?: string;
 }
 
-const initialTasks: RevisionItem[] = [
-  {
-    id: "rev-1",
-    topic: "Rotational Dynamics formulas review",
-    subject: "Physics",
-    dueDate: "2026-06-10",
-    priority: "High",
-    completed: false,
-    notes: "Focus on moment of inertia and rolling motion torque questions."
-  },
-  {
-    id: "rev-2",
-    topic: "Ionic Equilibrium NCERT Exemplar",
-    subject: "Chemistry",
-    dueDate: "2026-06-11",
-    priority: "High",
-    completed: false,
-    notes: "Practice buffer solution calculations and salt hydrolysis formulas."
-  },
-  {
-    id: "rev-3",
-    topic: "Thermodynamics Carnot Cycle graphs",
-    subject: "Physics",
-    dueDate: "2026-06-12",
-    priority: "Medium",
-    completed: false,
-    notes: "Draw P-V diagrams for isothermal and adiabatic expansions."
-  },
-  {
-    id: "rev-4",
-    topic: "Plant Physiology photosynthesis reactions",
-    subject: "Botany",
-    dueDate: "2026-06-13",
-    priority: "Medium",
-    completed: true,
-    notes: "Re-read light reaction steps and Z-scheme cycle."
-  },
-  {
-    id: "rev-5",
-    topic: "Human Digestion endocrine system chart",
-    subject: "Zoology",
-    dueDate: "2026-06-14",
-    priority: "Low",
-    completed: false,
-    notes: "Memorize hormonal triggers for gastric and pancreatic secretions."
-  }
-];
+const initialTasks: RevisionItem[] = [];
 
 export default function RevisionPlannerPage() {
   const [tasks, setTasks] = useState<RevisionItem[]>(initialTasks);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Form states
   const [topic, setTopic] = useState("");
   const [subject, setSubject] = useState("Physics");
-  const [dueDate, setDueDate] = useState("2026-06-10");
+  const [dueDate, setDueDate] = useState(new Date().toISOString().split("T")[0]);
   const [priority, setPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [notes, setNotes] = useState("");
 
-  const handleAddTask = (e: React.FormEvent) => {
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch("/api/revision-tasks");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tasks) {
+          setTasks(data.tasks);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch revision tasks:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic) return;
 
-    const newTask: RevisionItem = {
-      id: `rev-${Date.now()}`,
-      topic,
-      subject,
-      dueDate,
-      priority,
-      completed: false,
-      notes
-    };
+    try {
+      const res = await fetch("/api/revision-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          subject,
+          dueDate,
+          priority,
+          notes
+        })
+      });
 
-    setTasks([newTask, ...tasks]);
-    setShowAddForm(false);
-    setTopic("");
-    setNotes("");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.task) {
+          setTasks([data.task, ...tasks]);
+          setShowAddForm(false);
+          setTopic("");
+          setNotes("");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  const toggleTask = async (id: string) => {
+    const target = tasks.find((t) => t.id === id);
+    if (!target) return;
+
+    const newCompleted = !target.completed;
+    try {
+      const res = await fetch(`/api/revision-tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: newCompleted })
+      });
+
+      if (res.ok) {
+        setTasks(
+          tasks.map((t) => (t.id === id ? { ...t, completed: newCompleted } : t))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const deleteTask = (id: string) => {
+  const deleteTask = async (id: string) => {
     if (confirm("Delete this revision task from your planner?")) {
-      setTasks(tasks.filter((t) => t.id !== id));
+      try {
+        const res = await fetch(`/api/revision-tasks/${id}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setTasks(tasks.filter((t) => t.id !== id));
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -221,7 +232,11 @@ export default function RevisionPlannerPage() {
           </CardHeader>
           <CardContent className="pt-2">
             <div className="space-y-3">
-              {tasks.length === 0 ? (
+              {loading ? (
+                <div className="flex h-32 items-center justify-center text-xs text-muted-foreground font-semibold">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> Loading revision checklist...
+                </div>
+              ) : tasks.length === 0 ? (
                 <div className="text-center py-8 text-xs text-muted-foreground">
                   No revision sessions scheduled.
                 </div>

@@ -10,6 +10,12 @@ const mistakeJournalSchema = new Schema(
     topic: { type: String, default: "", trim: true, index: true },
     testId: { type: Schema.Types.ObjectId, ref: "Test", required: true, index: true },
     studentNote: { type: String, default: "", trim: true, maxlength: 1000 },
+    status: {
+      type: String,
+      enum: ["review_needed", "resolved"],
+      default: "review_needed",
+      index: true
+    },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null }
   },
