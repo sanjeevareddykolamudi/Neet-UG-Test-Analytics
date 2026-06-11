@@ -1,85 +1,85 @@
 [
   {
     "questionNo": 1,
-    "questionText": "Whats the efficiency of a Camot engine working between 127 C and 27 C7 (pe B)50 C)75 D)33.3",
+    "questionText": "What is the efficiency of a Carnot engine working between 127 C and 27 C?",
     "options": {
-      "A": "",
-      "B": "",
-      "C": "",
-      "D": ""
+      "A": "25%",
+      "B": "50%",
+      "C": "75%",
+      "D": "33.3%"
     },
-    "selectedAnswer": "Unattempted",
+    "selectedAnswer": "A",
     "confidence": {
-      "ocr": 86.32569885253906,
-      "markDetection": 100,
-      "overall": 93
+      "ocr": 96,
+      "markDetection": 70,
+      "overall": 83
     },
     "roiCoordinates": {
       "A": {
-        "x": 50,
-        "y": 800,
-        "width": 45,
-        "height": 35
+        "x": 120,
+        "y": 200,
+        "width": 35,
+        "height": 20
       },
       "B": {
-        "x": 170,
-        "y": 800,
-        "width": 45,
-        "height": 35
+        "x": 250,
+        "y": 200,
+        "width": 35,
+        "height": 20
       },
       "C": {
-        "x": 290,
-        "y": 840,
-        "width": 45,
-        "height": 35
+        "x": 380,
+        "y": 200,
+        "width": 35,
+        "height": 20
       },
       "D": {
-        "x": 410,
-        "y": 840,
-        "width": 45,
-        "height": 35
+        "x": 510,
+        "y": 200,
+        "width": 35,
+        "height": 20
       }
     }
   },
   {
     "questionNo": 2,
-    "questionText": "Which of the following Mendelian disorders is sex-linked recessive? /B) Haemophilia",
+    "questionText": "Which of the following Mendelian disorders is sex-linked recessive?",
     "options": {
       "A": "Sickle-cell anemia",
-      "B": "",
+      "B": "Haemophilia",
       "C": "Phenylketonuria",
       "D": "Thalassemia"
     },
-    "selectedAnswer": "D",
+    "selectedAnswer": "B",
     "confidence": {
-      "ocr": 92.4438705444336,
-      "markDetection": 37,
-      "overall": 65
+      "ocr": 96,
+      "markDetection": 32,
+      "overall": 64
     },
     "roiCoordinates": {
       "A": {
         "x": 120,
-        "y": 403,
+        "y": 400,
         "width": 60,
-        "height": 15
+        "height": 20
       },
       "B": {
-        "x": 240,
-        "y": 403,
+        "x": 120,
+        "y": 440,
         "width": 60,
-        "height": 15
+        "height": 20
       },
       "C": {
-        "x": 121,
-        "y": 483,
+        "x": 120,
+        "y": 480,
         "width": 60,
-        "height": 15
+        "height": 20
       },
       "D": {
-        "x": 121,
-        "y": 523,
+        "x": 120,
+        "y": 520,
         "width": 60,
-        "height": 15
+        "height": 20
       }
     }
   }

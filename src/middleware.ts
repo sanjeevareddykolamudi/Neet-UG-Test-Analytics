@@ -7,12 +7,25 @@ import { apiRateLimiter } from "@/lib/security/rate-limiter";
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
+  // Fast-path for health pings and port scanner HEAD checks
   if (path === "/health") {
     console.log("[Middleware] Health check pinged - returning 200 OK");
     return new NextResponse("OK", {
       status: 200,
       headers: { "Content-Type": "text/plain" }
     });
+  }
+
+  if (path === "/") {
+    if (request.method === "HEAD") {
+      console.log("[Middleware] HEAD / port scan pinged - returning 200 OK");
+      return new NextResponse("OK", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" }
+      });
+    }
+    console.log("[Middleware] Root path GET - redirecting to /dashboard");
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   console.log(`[Middleware] Incoming request: ${request.method} ${path}`);

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
@@ -49,7 +48,7 @@ const navItems = [
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +82,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         return (
           <Link
             key={item.href}
-            href={item.href}
+            to={item.href}
             onClick={() => setMobileOpen(false)}
             className={`group relative flex items-center justify-between rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200 ${
               isActive
@@ -265,7 +264,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           return (
             <Link
               key={item.href}
-              href={item.href}
+              to={item.href}
               className={`relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 ${
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}

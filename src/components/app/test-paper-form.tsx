@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   UploadCloud,
   Loader2,
@@ -39,7 +39,7 @@ interface UploadResult {
 }
 
 export function QuestionPaperForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("physics");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -281,8 +281,7 @@ export function QuestionPaperForm() {
 
           // Trigger redirect
           setTimeout(() => {
-            router.push("/tests");
-            router.refresh();
+            navigate("/tests");
           }, 3500);
         } catch {
           setUploadError("Successfully uploaded, but failed to parse API response metadata.");

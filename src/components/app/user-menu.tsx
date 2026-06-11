@@ -1,6 +1,4 @@
-"use client";
-
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/context/auth-context";
 import { LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,8 +10,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function UserMenu() {
-  const { data: session } = useSession();
-  const name = session?.user?.name || "Student";
+  const { user, logout } = useAuth();
+  const name = user?.name || "Student";
   const initials = name
     .split(" ")
     .map((part) => part[0])
@@ -25,12 +23,12 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger className="rounded-full outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring">
         <Avatar>
-          {session?.user?.image ? <AvatarImage src={session.user.image} alt={name} /> : null}
+          {user?.image ? <AvatarImage src={user.image} alt={name} /> : null}
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem onSelect={() => signOut({ callbackUrl: "/sign-in" })}>
+        <DropdownMenuItem onSelect={() => logout()}>
           <LogOut className="h-4 w-4" />
           Sign out
         </DropdownMenuItem>

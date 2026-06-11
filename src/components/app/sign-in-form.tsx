@@ -1,29 +1,76 @@
-"use client";
-
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
+
 export function SignInForm() {
+  const { loginDemo, loginGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    setError("");
-    signIn("google", { callbackUrl: "/dashboard" });
-  };
+  useEffect(() => {
+    let checkInterval: NodeJS.Timeout;
+
+    const initializeGoogleSignIn = async () => {
+      try {
+        const res = await fetch("/api/auth/config");
+        if (!res.ok) return;
+        const config = await res.json();
+
+        if (window.google?.accounts?.id) {
+          window.google.accounts.id.initialize({
+            client_id: config.googleClientId,
+            callback: async (response: any) => {
+              setLoading(true);
+              setError("");
+              try {
+                await loginGoogle(response.credential);
+                window.location.href = "/dashboard";
+              } catch (err: any) {
+                setError(err.message || "Failed to sign in with Google.");
+                setLoading(false);
+              }
+            },
+          });
+
+          window.google.accounts.id.renderButton(
+            document.getElementById("google-signin-btn"),
+            { 
+              theme: "outline", 
+              size: "large", 
+              width: 280,
+              text: "continue_with",
+              shape: "pill"
+            }
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load Google Auth configuration:", err);
+      }
+    };
+
+    checkInterval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        initializeGoogleSignIn();
+        clearInterval(checkInterval);
+      }
+    }, 100);
+
+    return () => clearInterval(checkInterval);
+  }, [loginGoogle]);
 
   const handleDemoSignIn = async () => {
     setDemoLoading(true);
     setError("");
     try {
-      await signIn("credentials", {
-        email: "demo@example.com",
-        password: "demo",
-        callbackUrl: "/dashboard",
-      });
+      await loginDemo("demo@example.com");
+      window.location.href = "/dashboard";
     } catch {
       setError("Failed to sign in with demo credentials.");
       setDemoLoading(false);
@@ -34,30 +81,24 @@ export function SignInForm() {
   const isDev = process.env.NODE_ENV !== "production";
 
   return (
-    <div className="space-y-5 flex flex-col items-center">
+    <div className="space-y-5 flex flex-col items-center w-full max-w-[280px]">
       {error && (
         <p className="text-xs font-semibold text-destructive text-center w-full bg-destructive/5 py-2 rounded-lg border border-destructive/10">
           {error}
         </p>
       )}
 
-      {/* Main Google Login Button */}
-      <Button
-        type="button"
-        size="lg"
-        disabled={loading || demoLoading}
-        className="w-full h-12 text-sm font-semibold shadow-lg shadow-primary/20 flex items-center justify-center gap-2.5 rounded-xl transition-all duration-300 hover:scale-[1.01]"
-        onClick={handleGoogleSignIn}
-      >
+      {/* Main Google Login Button (Rendered by GIS SDK) */}
+      <div className="w-full flex justify-center">
         {loading ? (
-          <span className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+          <div className="flex h-10 items-center justify-center gap-2 text-xs font-semibold text-muted-foreground bg-muted/30 border border-border/40 rounded-full px-4 w-full">
+            <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Connecting to Google...
+          </div>
         ) : (
-          <svg className="h-5 w-5" aria-hidden="true" focusable="false" viewBox="0 0 488 512">
-            <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
-          </svg>
+          <div id="google-signin-btn" className="w-full flex justify-center min-h-[40px]" />
         )}
-        {loading ? "Connecting to Google..." : "Continue with Google"}
-      </Button>
+      </div>
 
       {/* Development / Review Fallback Bypass */}
       {isDev && (
